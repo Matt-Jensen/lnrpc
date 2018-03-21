@@ -1,9 +1,11 @@
+/* globals setTimeout: true */
 const assert = require('assert');
 const pkgDir = require('pkg-dir');
 const fs = require('fs');
 const {join} = require('path');
 const {promisify} = require('util');
 const os = require('os');
+const Observable = require('zen-observable');
 
 const createLnrpc = require('./index');
 
@@ -14,7 +16,7 @@ const writeFile = promisify(fs.writeFile);
 const mkdir = promisify(fs.mkdir);
 
 const {assign} = Object;
-const {equal, fail} = assert;
+const {equal, fail, ok} = assert;
 
 describe('npm postinstall', () => {
   before(async () => {
@@ -241,6 +243,89 @@ describe('lnrpc factory', () => {
 
     const actual = await instance.getInfo({});
     equal(actual, expected, 'promisified `getInfo` target method');
+  });
+
+  it('creates observer instances for subscription methods', async () => {
+    const subscriptionMethods = ['subscriber1', 'subscriber2'];
+    const target = {
+      subscriber1() {},
+      subscriber2() {},
+    };
+
+    const instance = await createLnrpc({
+      subscriptionMethods,
+      _grpc: grpcStub({}, function() {
+        return target;
+      }),
+    });
+
+    subscriptionMethods.forEach((method) => {
+      ok(instance[method]({}) instanceof Observable, 'has Observable instance');
+    });
+  });
+
+  it('subscribes to all grpc events', async () => {
+    const expected = 'message';
+    const target = {
+      subscriber: () => ({
+        on: (evt, cb) => {
+          // Ensure end callback invoked last
+          setTimeout(() => cb(expected), evt === 'end' ? 10 : 0);
+        },
+      }),
+    };
+
+    const instance = await createLnrpc({
+      subscriptionMethods: ['subscriber'],
+      _grpc: grpcStub({}, function() {
+        return target;
+      }),
+    });
+
+    const grpcEvents = [];
+
+    await new Promise((resolve) => instance.subscriber({}).subscribe({
+      next(payload) {
+        const [evt] = Object.keys(payload);
+        grpcEvents.push(evt);
+        equal(payload[evt], expected, `has expected ${evt} argument`);
+      },
+      complete() {
+        grpcEvents.push('end');
+        resolve();
+      },
+    }));
+
+    ok(grpcEvents.includes('data'), 'sent `data` event');
+    ok(grpcEvents.includes('status'), 'sent `status` event');
+    ok(grpcEvents.includes('end'), 'sent `end` event');
+  });
+
+  it('unsubscribes from grpc events', async () => {
+    const target = {
+      subscriber: () => ({
+        on() { },
+      }),
+    };
+
+    const instance = await createLnrpc({
+      subscriptionMethods: ['subscriber'],
+      _grpc: grpcStub({}, function() {
+        return target;
+      }),
+    });
+
+
+    return new Promise((resolve) => {
+      const subscription = instance.subscriber({}).subscribe({
+        complete() {
+          ok(true, 'invoked observer `complete`');
+          resolve();
+        },
+      });
+
+      subscription._observer.complete();
+    });
   });
 });
 

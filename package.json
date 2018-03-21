@@ -21,7 +21,8 @@
   "dependencies": {
     "grpc": "^1.6.0",
     "napa": "^3.0.0",
-    "pkg-dir": "^2.0.0"
+    "pkg-dir": "^2.0.0",
+    "zen-observable": "^0.8.8"
   },
   "devDependencies": {
     "eslint": "^4.7.1",
