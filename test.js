@@ -1,11 +1,9 @@
-/* globals setTimeout: true */
 const assert = require('assert');
 const pkgDir = require('pkg-dir');
 const fs = require('fs');
 const {join} = require('path');
 const {promisify} = require('util');
 const os = require('os');
-const Observable = require('zen-observable');
 
 const createLnrpc = require('./index');
 
@@ -16,7 +14,7 @@ const writeFile = promisify(fs.writeFile);
 const mkdir = promisify(fs.mkdir);
 
 const {assign} = Object;
-const {equal, fail, ok} = assert;
+const {equal, fail} = assert;
 
 describe('npm postinstall', () => {
   before(async () => {
@@ -68,7 +66,7 @@ describe('TLS settings', () => {
     return createLnrpc({
       cert: expected.toString(),
       tls: 'not-expected',
-      _grpc: grpcStub({
+      grpc: grpcStub({
         credentials: {
           createSsl: (actual) => {
             assert(actual instanceof Buffer, 'cert is a Buffer instance');
@@ -89,7 +87,7 @@ describe('TLS settings', () => {
 
     createLnrpc({
       tls: expected,
-      _grpc: grpcStub({
+      grpc: grpcStub({
         credentials: {
           createSsl: (actual) => {
             equal(actual, expected, 'configures provided `tls` value');
@@ -106,7 +104,7 @@ describe('TLS settings', () => {
 
   it('should default to a system lnd SSL cert when unconfigured', (done) => {
     createLnrpc({
-      _grpc: grpcStub({
+      grpc: grpcStub({
         credentials: {
           createSsl: (cert) => {
             assert(/lnd\.conf$/.test(cert), 'used system SSL cert file path');
@@ -134,7 +132,7 @@ describe('grpc lnd/proto instantiation', () => {
       // ensure rpc.proto file gets removed
     }
 
-    await createLnrpc({_grpc: grpcStub()});
+    await createLnrpc({grpc: grpcStub()});
 
     try {
       await stat(protoDest);
@@ -144,7 +142,7 @@ describe('grpc lnd/proto instantiation', () => {
   });
 
   it('should generate an `rpc.proto` without google annotations', async () => {
-    await createLnrpc({_grpc: grpcStub()});
+    await createLnrpc({grpc: grpcStub()});
 
     const root = await pkgDir(__dirname);
     const rpcProto = await readFile(join(root, 'rpc.proto'), 'utf-8');
@@ -161,7 +159,7 @@ describe('grpc lnd/proto instantiation', () => {
     const expected = join(root, 'rpc.proto');
 
     return createLnrpc({
-      _grpc: grpcStub({
+      grpc: grpcStub({
         load: (actual) => {
           equal(actual, expected, 'loaded generated `rpc.proto` via load');
           return grpcStub().load();
@@ -174,7 +172,7 @@ describe('grpc lnd/proto instantiation', () => {
     const expected = 'localhost:10001';
 
     return createLnrpc({
-      _grpc: grpcStub({}, function(actual) {
+      grpc: grpcStub({}, function(actual) {
         equal(actual, expected, 'defaults to expected server');
         return new LightningStub();
       }),
@@ -186,7 +184,7 @@ describe('grpc lnd/proto instantiation', () => {
 
     return createLnrpc({
       server: expected,
-      _grpc: grpcStub({}, function(actual) {
+      grpc: grpcStub({}, function(actual) {
         equal(actual, expected, 'recieved configured server');
         return new LightningStub();
       }),
@@ -200,7 +198,7 @@ describe('lnrpc factory', () => {
       server: 'localhost:10003',
       tls: './my.cert',
       cert: 'trust me',
-      _grpc: grpcStub(),
+      grpc: grpcStub(),
     }))
   );
 
@@ -208,7 +206,7 @@ describe('lnrpc factory', () => {
     const expected = {name: 'test'};
 
     const instance = await createLnrpc({
-      _grpc: grpcStub({}, function() {
+      grpc: grpcStub({}, function() {
         return expected;
       }),
     });
@@ -220,7 +218,7 @@ describe('lnrpc factory', () => {
     const expected = {};
 
     const instance = await createLnrpc({
-      _grpc: grpcStub({}, function() {
+      grpc: grpcStub({}, function() {
         return expected;
       }),
     });
@@ -236,7 +234,7 @@ describe('lnrpc factory', () => {
     };
 
     const instance = await createLnrpc({
-      _grpc: grpcStub({}, function() {
+      grpc: grpcStub({}, function() {
         return target;
       }),
     });
@@ -245,86 +243,23 @@ describe('lnrpc factory', () => {
     equal(actual, expected, 'promisified `getInfo` target method');
   });
 
-  it('creates observer instances for subscription methods', async () => {
-    const subscriptionMethods = ['subscriber1', 'subscriber2'];
+  it('should forward streaming methods, unmodified', async () => {
+    const expected = {on() {}, write() {}}; // RPC streaming response interface
+    const subscriptionMethods = ['stream1', 'stream2'];
     const target = {
-      subscriber1() {},
-      subscriber2() {},
+      stream1: () => expected,
+      stream2: () => expected,
     };
 
     const instance = await createLnrpc({
       subscriptionMethods,
-      _grpc: grpcStub({}, function() {
+      grpc: grpcStub({}, function() {
         return target;
       }),
     });
 
     subscriptionMethods.forEach((method) => {
-      ok(instance[method]({}) instanceof Observable, 'has Observable instance');
-    });
-  });
-
-  it('subscribes to all grpc events', async () => {
-    const expected = 'message';
-    const target = {
-      subscriber: () => ({
-        on: (evt, cb) => {
-          // Ensure end callback invoked last
-          setTimeout(() => cb(expected), evt === 'end' ? 10 : 0);
-        },
-      }),
-    };
-
-    const instance = await createLnrpc({
-      subscriptionMethods: ['subscriber'],
-      _grpc: grpcStub({}, function() {
-        return target;
-      }),
-    });
-
-    const grpcEvents = [];
-
-    await new Promise((resolve) => instance.subscriber({}).subscribe({
-      next(payload) {
-        const [evt] = Object.keys(payload);
-        grpcEvents.push(evt);
-        equal(payload[evt], expected, `has expected ${evt} argument`);
-      },
-      complete() {
-        grpcEvents.push('end');
-        resolve();
-      },
-    }));
-
-    ok(grpcEvents.includes('data'), 'sent `data` event');
-    ok(grpcEvents.includes('status'), 'sent `status` event');
-    ok(grpcEvents.includes('end'), 'sent `end` event');
-  });
-
-  it('unsubscribes from grpc events', async () => {
-    const target = {
-      subscriber: () => ({
-        on() { },
-      }),
-    };
-
-    const instance = await createLnrpc({
-      subscriptionMethods: ['subscriber'],
-      _grpc: grpcStub({}, function() {
-        return target;
-      }),
-    });
-
-
-    return new Promise((resolve) => {
-      const subscription = instance.subscriber({}).subscribe({
-        complete() {
-          ok(true, 'invoked observer `complete`');
-          resolve();
-        },
-      });
-
-      subscription._observer.complete();
+      equal(instance[method](), expected, 'forwards original method');
     });
   });
 });
