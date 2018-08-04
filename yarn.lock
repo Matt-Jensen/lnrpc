@@ -2,12 +2,6 @@
 # yarn lockfile v1
 
 
-"@grpc/grpc-js@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/@grpc/grpc-js/-/grpc-js-0.2.0.tgz#841b91cd91debdc52ad8414d29d66ba3fe2b184e"
-  dependencies:
-    lodash "^4.17.4"
-
 "@grpc/proto-loader@^0.3.0":
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/@grpc/proto-loader/-/proto-loader-0.3.0.tgz#c127d3859bff895f220453612ba04b923af0c584"

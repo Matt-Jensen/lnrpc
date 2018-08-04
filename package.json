@@ -20,7 +20,6 @@
   "author": "Matt-Jensen",
   "license": "MIT",
   "dependencies": {
-    "@grpc/grpc-js": "^0.2.0",
     "@grpc/proto-loader": "^0.3.0",
     "grpc": "^1.14.0-pre2",
     "napa": "^3.0.0",
