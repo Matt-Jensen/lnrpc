@@ -1,0 +1,66 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const { promisify } = require('util');
+
+const NapaPkg = require('napa');
+
+// This is the suffix of the script path when it is installed as a dependency
+const scriptPathDependencySuffix = path.join('node_modules', 'lnrpc', 'bin', 'lnrpc-install');
+
+/**
+ * @param scriptPath - the full path of this script
+ * @return {Promise<String>} - the version string (will be `v`-prefixed)
+ */
+const getLndVersion = async (scriptPath) => {
+  const parentPath = scriptPath.substring(0, scriptPath.length - scriptPathDependencySuffix.length);
+  const pkgPath = path.join(parentPath, 'package.json');
+  const packageJson = JSON.parse(await promisify(fs.readFile)(pkgPath));
+  const config = (packageJson.config || {}).lnrpc;
+
+  if (!config || !config.version) {
+    throw new Error(`
+    Please add this to your ${pkgPath} (example)
+    
+    \`\`\`
+    {
+     "config": {
+      "lnrpc": { 
+        "version": "0.6-beta"
+      }
+    }
+    \`\`\`
+    `);
+  }
+
+  let { version } = config;
+
+  if ((typeof version) !== "string") {
+    throw new Error(`version must be string`);
+  }
+
+  if (!version.match(/^v/)) {
+    version = `v${version}`;
+  }
+
+  return version;
+};
+
+const main = async (nodePath, scriptPath) => {
+  if (!scriptPath.endsWith(scriptPathDependencySuffix)) {
+    return console.log('not installed as dependency, exiting.');
+  }
+  const version = await getLndVersion(scriptPath);
+  const url = `https://github.com/lightningnetwork/lnd/archive/${version}.tar.gz`;
+  const pkgName = 'lnd';
+  const pkg = new NapaPkg(url, pkgName, { cache: false });
+  await promisify(pkg.install.bind(pkg))();
+};
+
+if (require.main === module) {
+  main(...process.argv).catch((e) => {
+    console.error(e);
+    process.abort();
+  });
+}
