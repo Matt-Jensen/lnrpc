@@ -7,6 +7,7 @@ Synced to [LND master branch](https://github.com/lightningnetwork/lnd/blob/maste
 - ✨Wraps requests in promises
 - 🤝Easily setup SSL and Macaroons
 - 📚Instantiates all gRPC services
+- 🔢Configurable LND version
 
 ### Installation
 
@@ -79,6 +80,33 @@ const createLnrpc = require('lnrpc');
   });
 })();
 ```
+
+### Configuring LND Version
+
+By default the LND master branch is installed, however you can easily install specific releases and branches by updating your project's `package.json` file.
+
+**Install at Release**
+
+```json
+{
+  "lnrpc": {
+    "version": "v0.5.2-beta"
+  }
+}
+```
+
+**Install at
+ Branch**
+
+```json
+{
+  "lnrpc": {
+    "version": "temp-testnet-fee-estimation"
+  }
+}
+```
+
+⚠️ Setting an undiscoverable version will fail without error, so be sure you've selected a [valid release](https://github.com/lightningnetwork/lnd/releases) or [git branch](https://github.com/lightningnetwork/lnd/branches).
 
 ### API Reference
 
