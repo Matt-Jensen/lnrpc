@@ -2,7 +2,7 @@
 const {join} = require('path');
 
 try {
-  const rootPackage = require(join(process.cwd(), 'package.json'));
+  const rootPackage = require(join(process.env.INIT_CWD, 'package.json'));
   const {version} = rootPackage.lnrpc;
   if (!version || typeof version !== 'string') {
     throw Error('LND version undefined');
