@@ -95,8 +95,7 @@ By default the LND master branch is installed, however you can easily install sp
 }
 ```
 
-**Install at
- Branch**
+**Install at Branch**
 
 ```json
 {
@@ -111,6 +110,10 @@ By default the LND master branch is installed, however you can easily install sp
 ### API Reference
 
 [All lnrpc methods documentation can be found here](http://api.lightning.community).
+
+### Usage With BTCPayServer
+
+By default lnrpc assumes SSl certificate pinning.  In order to use lnrpc with a service (like BTCPayServer) which manages your certification, you'll have to opt to disable certificate pinning by passing `{ tls: false }` within your lnrpc configuration.
 
 ### Contributors
 
