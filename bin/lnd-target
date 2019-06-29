@@ -1,0 +1,13 @@
+#!/usr/bin/env node
+const {join} = require('path');
+
+try {
+  const rootPackage = require(join(process.cwd(), 'package.json'));
+  const {version} = rootPackage.lnrpc;
+  if (!version || typeof version !== 'string') {
+    throw Error('LND version undefined');
+  }
+  process.stdout.write(version);
+} catch (_) {
+  process.stdout.write('master');
+}
