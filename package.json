@@ -1,6 +1,6 @@
 {
   "name": "lnrpc",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "User-centric Node.js gRPC client for lightningnetwork/lnd",
   "main": "index.js",
   "scripts": {
@@ -21,7 +21,7 @@
   "license": "MIT",
   "dependencies": {
     "@grpc/proto-loader": "^0.3.0",
-    "grpc": "^1.14.0-pre2",
+    "grpc": "1.24.2",
     "napa": "^3.0.0",
     "pkg-dir": "^2.0.0"
   },
