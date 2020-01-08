@@ -6,7 +6,7 @@
   "scripts": {
     "test": "./node_modules/.bin/eslint . && ./node_modules/.bin/mocha ./test/**/*.test.js",
     "start": "node ./index.js",
-    "postinstall": "./bin/lnd-target | xargs printf \"lightningnetwork/lnd#%s:lnd\" | xargs napa"
+    "postinstall": "./bin/lnd-target | xargs printf \"lightningnetwork/lnd#%s:lnd\" | xargs napa && ./bin/cache-rpc-proto"
   },
   "repository": "https://github.com/Matt-Jensen/lnrpc",
   "keywords": [
