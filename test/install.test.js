@@ -56,4 +56,12 @@ describe('Install', () => {
         assert.fail('`node_modules/lnd/lnrpc/rpc.proto` was not installed')
       );
   });
+
+  it('should copy lnd/lnrpc/rpc.proto to `tmp/rpc.proto`', async () => {
+    const root = await pkgDir(__dirname);
+
+    return stat(join(root, 'tmp/rpc.proto'))
+      .then(() => assert(true, '`tmp/rpc.proto` exists'))
+      .catch((e) => assert.fail('`tmp/rpc.proto` was not copied'));
+  });
 });

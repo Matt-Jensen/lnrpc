@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+const fs = require('fs');
+const {join} = require('path');
+const {promisify} = require('util');
+const copyFile = promisify(fs.copyFile);
+const mkdir = promisify(fs.mkdir);
+const pkgDir = require('pkg-dir');
+
+(async () => {
+  const rootPath = await pkgDir(__dirname);
+  const protoSrc = join(rootPath, 'node_modules/lnd/lnrpc/rpc.proto');
+  const protoDest = join(rootPath, './tmp/rpc.proto');
+  try {
+    await mkdir(join(rootPath, '/tmp'));
+  } catch (err) {} // eslint-disable-line
+
+  try {
+    await copyFile(protoSrc, protoDest);
+  } catch (err) {} // eslint-disable-line
+})();
