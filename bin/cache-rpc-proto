@@ -7,13 +7,19 @@ const mkdir = promisify(fs.mkdir);
 const pkgDir = require('pkg-dir');
 
 (async () => {
-  const rootPath = await pkgDir(__dirname);
+  let rootPath = '';
+  try {
+    rootPath = await pkgDir(__dirname);
+  } catch (err) {}  // eslint-disable-line
   const protoSrc = join(rootPath, 'node_modules/lnd/lnrpc/rpc.proto');
   const protoDest = join(rootPath, './tmp/rpc.proto');
+
+  // Ensure /tmp dir exists in module's root
   try {
     await mkdir(join(rootPath, '/tmp'));
   } catch (err) {} // eslint-disable-line
 
+  // Cache LND's rpc.proto into /tmp
   try {
     await copyFile(protoSrc, protoDest);
   } catch (err) {} // eslint-disable-line
